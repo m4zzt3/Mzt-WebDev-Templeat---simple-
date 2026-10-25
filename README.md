@@ -111,21 +111,6 @@ AI akan otomatis:
 3. Menghasilkan logo, favicon, dan ikon PWA (`generate-assets`).
 4. Mengompilasi kode ke `dist/` (`npm run build`).
 
-### 3. Mengunggah Pembaruan Template ke GitHub (Push)
-Jika Anda memperbarui template ini dan ingin membagikan atau menyimpannya kembali ke GitHub:
-- **Di Windows**: Cukup klik dua kali file **`push.bat`**.
-- **Di Linux / macOS**: Jalankan di terminal:
-  ```bash
-  ./push.sh
-  ```
-*Script ini otomatis menyinkronkan folder `skills/` ke `.agents/skills/`, membuat commit, dan mengunggahnya ke branch `main` di GitHub.*
-
-### 4. Mengambil Update Template Terbaru (Pull)
-Untuk memperbarui template di komputer Anda jika ada rilis baru di GitHub:
-```bash
-git pull origin main
-```
-
 ---
 
 ## Cara Pakai di Antigravity CLI
@@ -225,3 +210,23 @@ npm run deploy:firebase
 ```
 
 Untuk panduan lengkap langkah demi langkah pembuatan project di Firebase Console, lihat **`catatan.md` bagian H**.
+
+---
+
+## 🛠️ Khusus Maintainer Template (Pengembang Master Repo)
+
+> **Catatan:** Bagian ini khusus untuk Anda sebagai pengelola master repo Mazte WebDev Template (bukan untuk end-user yang meng-clone repo ini untuk proyek web klien).
+
+### 1. Mengunggah Pembaruan Template ke GitHub (Push)
+Jika Anda memperbarui template ini dan ingin membagikan atau menyimpannya kembali ke repositori master di GitHub:
+- **Di Windows**: Cukup klik dua kali file **`push.bat`**.
+- **Di Linux / macOS**: Jalankan di terminal:
+  ```bash
+  ./push.sh
+  ```
+*Script ini otomatis menyinkronkan folder `skills/` ke `.agents/skills/`, merapikan staging, membuat commit, dan mengunggahnya ke branch `main` di GitHub.*
+
+### 2. Mengambil Pembaruan Template dari GitHub (Pull)
+```bash
+git pull origin main
+```
