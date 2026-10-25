@@ -81,9 +81,57 @@ flowchart LR
 
 ---
 
+## 🚀 Panduan Memulai Cepat (Quick Start via Git)
+
+### 1. Clone Template untuk Proyek Baru
+Untuk membuat aplikasi web baru menggunakan template Mazte:
+
+```bash
+# Clone template ke folder proyek baru
+git clone https://github.com/m4zzt3/Mzt-WebDev-Templeat---simple-.git "nama-web-anda"
+
+# Masuk ke direktori proyek
+cd "nama-web-anda"
+
+# Instal dependensi runtime (opsional untuk build lokal)
+npm install
+```
+
+### 2. Jalankan AI Coding Assistant
+Buka folder proyek tersebut di **Google Antigravity IDE / CLI** atau **OpenCode**.
+
+Cukup ketik ide web Anda di chat:
+> *"Buatkan web toko kasir apotek lengkap dengan laporan stok dan penjualan"*  
+> atau jalankan command:  
+> `/init buatkan web landing page profil studio digital`
+
+AI akan otomatis:
+1. Membuat spesifikasi sistem `prd.md` (`generate-prd`).
+2. Men-generate backend `Code.gs` Google Apps Script & frontend modern Alpine.js (`scaffold-project`).
+3. Menghasilkan logo, favicon, dan ikon PWA (`generate-assets`).
+4. Mengompilasi kode ke `dist/` (`npm run build`).
+
+### 3. Mengunggah Pembaruan Template ke GitHub (Push)
+Jika Anda memperbarui template ini dan ingin membagikan atau menyimpannya kembali ke GitHub:
+- **Di Windows**: Cukup klik dua kali file **`push.bat`**.
+- **Di Linux / macOS**: Jalankan di terminal:
+  ```bash
+  ./push.sh
+  ```
+*Script ini otomatis menyinkronkan folder `skills/` ke `.agents/skills/`, membuat commit, dan mengunggahnya ke branch `main` di GitHub.*
+
+### 4. Mengambil Update Template Terbaru (Pull)
+Untuk memperbarui template di komputer Anda jika ada rilis baru di GitHub:
+```bash
+git pull origin main
+```
+
+---
+
 ## Cara Pakai di Antigravity CLI
 
 ### Opsi A: Per Project (Workspace)
+Jika Anda sudah memiliki project yang sedang berjalan dan hanya ingin menambahkan skill Mazte:
 1. Salin folder `skills/` ke dalam `.agents/skills/` di root project Anda:
    ```
    my-project/
@@ -92,9 +140,11 @@ flowchart LR
            ├── generate-prd/
            ├── scaffold-project/
            ├── generate-assets/
+           ├── gas-builder/
+           ├── design-analyst/
            └── ui-ux-pro-max/
    ```
-2. Buka project di Antigravity CLI.
+2. Buka project di Antigravity CLI/IDE.
 3. Cukup ketik perintah Anda:
    > *"buatkan saya web toko kasir percetakan"*  
    > atau  
@@ -104,11 +154,16 @@ flowchart LR
 ### Opsi B: Global (Berlaku untuk Semua Project di Komputer Anda)
 Salin folder skill ke `~/.gemini/config/skills/`:
 ```powershell
-# Di PowerShell:
+# Di Windows (PowerShell):
 New-Item -ItemType Directory -Path "$HOME\.gemini\config\skills" -Force
 Copy-Item -Recurse -Force "skills\*" "$HOME\.gemini\config\skills\"
 ```
-Setelah disalin ke direktori global, di folder project mana pun Anda berada, Antigravity akan selalu mengenali skill Mazte.
+```bash
+# Di Linux / macOS (Bash):
+mkdir -p "$HOME/.gemini/config/skills"
+cp -r skills/* "$HOME/.gemini/config/skills/"
+```
+Setelah disalin ke direktori global, di folder project mana pun Anda berada, Antigravity akan selalu mengenali skill Mazte secara otomatis.
 
 ---
 
