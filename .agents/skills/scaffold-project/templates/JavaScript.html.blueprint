@@ -1,0 +1,321 @@
+<script>
+  /**
+   * __APP_NAME__ — Client Side Logic (Alpine.js Data & Apps Script API Bridge)
+   */
+
+  // 1. Konfigurasi URL Google Apps Script Backend
+  const PROD_WEB_APP_URL = 'https://script.google.com/macros/s/PROD_WEB_APP_URL_HERE/exec';
+  const DEV_WEB_APP_URL = 'https://script.google.com/macros/s/DEV_WEB_APP_URL_HERE/exec';
+  const WEB_APP_URLS = [PROD_WEB_APP_URL];
+
+  const CACHE_KEY = '__CACHE_PREFIX___APP_DATA_V1';
+  const THEME_KEY = '__CACHE_PREFIX___THEME';
+  const USER_KEY = '__CACHE_PREFIX___CURRENT_USER';
+
+  // 2. HTTP POST Handler untuk Apps Script (dengan CORS text/plain preflight bypass)
+  async function fetchFromAppsScript(action, args = []) {
+    let lastError = null;
+    for (const url of WEB_APP_URLS) {
+      if (!url || url.includes('PROD_WEB_APP_URL_HERE') || url.includes('DEV_WEB_APP_URL_HERE')) {
+        continue;
+      }
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify({ action, args }),
+          redirect: 'follow'
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP Error ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+      } catch (err) {
+        lastError = err;
+        console.warn(`Gagal request ke ${url}:`, err);
+      }
+    }
+    // Fallback jika belum dihubungkan URL backend
+    return { success: false, localOnly: true, message: lastError ? lastError.message : 'Backend belum terhubung' };
+  }
+
+  // 3. API Dispatcher (google.script.run saat di GAS, atau fetchFromAppsScript)
+  async function runApi(action, ...args) {
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          [action](...args);
+      });
+    }
+    return fetchFromAppsScript(action, args);
+  }
+
+  // =========================================================================
+  // SETUP GLOBAL SWEETALERT2 MODERN FORMATTER
+  // Menyeragamkan seluruh popup notifikasi, validasi & konfirmasi di aplikasi
+  // dengan estetika kartu modern, glowing ambient blur & tombol gradient
+  // =========================================================================
+  (function setupModernSwal() {
+    if (typeof window === 'undefined') return;
+
+    function initSwalWrapper() {
+      if (!window.Swal || window.Swal.__isModernConfigured) return;
+      window.Swal.__isModernConfigured = true;
+
+      const originalFire = window.Swal.fire.bind(window.Swal);
+
+      window.Swal.fire = function(...args) {
+        let opts = {};
+        if (typeof args[0] === 'string') {
+          opts.title = args[0];
+          if (typeof args[1] === 'string') opts.text = args[1];
+          if (typeof args[2] === 'string') opts.icon = args[2];
+        } else if (typeof args[0] === 'object' && args[0] !== null) {
+          opts = { ...args[0] };
+        }
+
+        const isDark = document.documentElement.classList.contains('dark') || 
+                       localStorage.getItem(THEME_KEY) === 'dark';
+
+        const rawIcon = opts.icon || (opts.showCancelButton ? 'question' : 'info');
+        const titleText = opts.title || '';
+        const bodyText = opts.text || '';
+        
+        const isDeleteOrDanger = /hapus|delete|buang|keluar/i.test(titleText) ||
+                                 /hapus|delete|buang|keluar/i.test(opts.confirmButtonText || '') ||
+                                 rawIcon === 'error';
+
+        let tag = 'INFORMASI';
+        let tagColor = 'text-blue-600 dark:text-blue-400';
+        let glow = 'bg-blue-500/20 dark:bg-blue-500/30';
+        let gradient = 'bg-gradient-to-tr from-blue-600 to-indigo-500';
+        let shadow = 'shadow-blue-500/30';
+        let iconClass = 'fa-circle-info';
+        let confirmGradient = 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/25';
+
+        if (isDeleteOrDanger) {
+          tag = /hapus/i.test(titleText) ? 'KONFIRMASI HAPUS' : (rawIcon === 'error' ? 'PERINGATAN' : 'KONFIRMASI');
+          tagColor = 'text-rose-600 dark:text-rose-400';
+          glow = 'bg-rose-500/20 dark:bg-rose-500/30';
+          gradient = 'bg-gradient-to-tr from-rose-600 to-rose-500';
+          shadow = 'shadow-rose-500/30';
+          iconClass = /hapus/i.test(titleText) ? 'fa-trash-can' : 'fa-circle-xmark';
+          confirmGradient = 'bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white shadow-rose-500/25';
+        } else if (rawIcon === 'success') {
+          tag = 'BERHASIL';
+          tagColor = 'text-emerald-600 dark:text-emerald-400';
+          glow = 'bg-emerald-500/20 dark:bg-emerald-500/30';
+          gradient = 'bg-gradient-to-tr from-emerald-600 to-teal-500';
+          shadow = 'shadow-emerald-500/30';
+          iconClass = 'fa-circle-check';
+          confirmGradient = 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-500/25';
+        } else if (rawIcon === 'warning') {
+          tag = opts.showCancelButton ? 'KONFIRMASI' : 'PERHATIAN';
+          tagColor = 'text-amber-600 dark:text-amber-400';
+          glow = 'bg-amber-500/20 dark:bg-amber-500/30';
+          gradient = 'bg-gradient-to-tr from-amber-500 to-orange-500';
+          shadow = 'shadow-amber-500/30';
+          iconClass = 'fa-triangle-exclamation';
+          confirmGradient = 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-amber-500/25';
+        } else if (rawIcon === 'question') {
+          tag = 'KONFIRMASI';
+          tagColor = 'text-violet-600 dark:text-violet-400';
+          glow = 'bg-violet-500/20 dark:bg-violet-500/30';
+          gradient = 'bg-gradient-to-tr from-violet-600 to-purple-600';
+          shadow = 'shadow-violet-500/30';
+          iconClass = 'fa-circle-question';
+          confirmGradient = 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-violet-500/25';
+        }
+
+        const isToast = Boolean(opts.toast || (this && this.params && this.params.toast));
+        if (isToast) {
+          if (!opts.html) {
+            opts.html = `
+              <div class="flex items-center gap-3 py-1 text-left w-full">
+                <div class="w-8 h-8 rounded-xl ${gradient} text-white flex items-center justify-center text-sm shadow-md shrink-0">
+                  <i class="fa-solid ${iconClass}"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-xs font-bold text-slate-900 dark:text-white leading-snug">${titleText}</div>
+                  ${bodyText ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">${bodyText}</div>` : ''}
+                </div>
+              </div>
+            `;
+          }
+          delete opts.icon;
+          delete opts.title;
+          delete opts.text;
+          opts.buttonsStyling = false;
+          opts.background = isDark ? '#0f172a' : '#ffffff';
+          opts.customClass = {
+            popup: 'rounded-2xl p-3 shadow-xl border border-slate-200/90 dark:border-slate-800/90 backdrop-blur-xl font-sans',
+            ...(opts.customClass || {})
+          };
+          return originalFire(opts);
+        }
+
+        if (!opts.html) {
+          opts.html = `
+            <div class="p-2 sm:p-3 text-center space-y-3">
+              <div class="relative mx-auto w-16 h-16 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-2xl ${glow} blur-xl"></div>
+                <div class="relative w-16 h-16 rounded-2xl ${gradient} text-white flex items-center justify-center text-2xl shadow-lg ${shadow}">
+                  <i class="fa-solid ${iconClass}"></i>
+                </div>
+              </div>
+              <div>
+                <span class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${tagColor} block">${tag}</span>
+                <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white mt-1 leading-snug">${titleText}</h3>
+                ${bodyText ? `<p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">${bodyText}</p>` : ''}
+              </div>
+            </div>
+          `;
+        }
+
+        delete opts.icon;
+        delete opts.title;
+        delete opts.text;
+        delete opts.confirmButtonColor;
+        delete opts.cancelButtonColor;
+
+        opts.buttonsStyling = false;
+        opts.background = isDark ? '#0f172a' : '#ffffff';
+
+        if (opts.showConfirmButton === false || (opts.timer && opts.showConfirmButton !== true)) {
+          opts.showConfirmButton = false;
+        } else {
+          opts.confirmButtonText = opts.confirmButtonText || (opts.showCancelButton ? 'Lanjutkan' : 'Oke, Paham');
+        }
+        opts.cancelButtonText = opts.cancelButtonText || 'Batal';
+
+        const defaultCustomClass = {
+          popup: 'rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200/90 dark:border-slate-800/90 backdrop-blur-2xl max-w-sm w-full font-sans',
+          actions: opts.showCancelButton ? 'grid grid-cols-2 gap-3 pt-2 w-full' : 'flex justify-center items-center pt-2 w-full',
+          confirmButton: opts.showCancelButton
+            ? `w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold active:scale-98 transition-all cursor-pointer shadow-md ${confirmGradient}`
+            : `w-full max-w-xs mx-auto py-2.5 px-6 rounded-xl text-xs sm:text-sm font-bold active:scale-98 transition-all cursor-pointer shadow-md ${confirmGradient}`,
+          cancelButton: 'w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs sm:text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-98 transition-all cursor-pointer'
+        };
+
+        opts.customClass = {
+          ...defaultCustomClass,
+          ...(opts.customClass || {})
+        };
+
+        return originalFire(opts);
+      };
+    }
+
+    if (window.Swal) {
+      initSwalWrapper();
+    } else {
+      document.addEventListener('DOMContentLoaded', initSwalWrapper);
+    }
+  })();
+
+  // =========================================================================
+  // ANTI-INSPECT & DEVTOOLS PROTECTION SHIELD
+  // =========================================================================
+  (function initSecurityShield() {
+    if (typeof window === 'undefined') return;
+
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' || 
+                        window.location.protocol === 'file:' ||
+                        window.location.search.includes('serverWindowId=');
+
+    if (isLocalhost) {
+      return;
+    }
+
+    // Toggle Dev Mode: Ctrl + Alt + Shift + D
+    window.addEventListener('keydown', function(e) {
+      const key = e.key ? e.key.toLowerCase() : '';
+      const isCtrl = e.ctrlKey || e.metaKey;
+
+      if (isCtrl && e.altKey && e.shiftKey && key === 'd') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (localStorage.getItem('__CACHE_PREFIX___DEV_MODE') === 'true') {
+          localStorage.removeItem('__CACHE_PREFIX___DEV_MODE');
+          alert('🔒 Proteksi Anti-Inspect diaktifkan kembali!');
+          location.reload();
+        } else {
+          const secret = prompt('Masukkan Kunci Pengembang untuk membuka akses inspect:');
+          if (secret && secret === 'supermenbaik97') {
+            localStorage.setItem('__CACHE_PREFIX___DEV_MODE', 'true');
+            alert('🔓 Mode Pengembang Berhasil Diaktifkan!');
+            location.reload();
+          } else if (secret !== null) {
+            alert('❌ Kunci pengembang salah!');
+          }
+        }
+        return false;
+      }
+    }, { capture: true });
+  })();
+
+  // 4. Alpine.js Main Store
+  function appData() {
+    return {
+      activeTab: 'home',
+      isLoading: false,
+      isDarkMode: false,
+      currentUser: null,
+      
+      init() {
+        // Theme initialization
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          this.isDarkMode = true;
+          document.documentElement.classList.add('dark');
+        } else {
+          this.isDarkMode = false;
+          document.documentElement.classList.remove('dark');
+        }
+
+        // Session initialization
+        try {
+          const savedUser = localStorage.getItem(USER_KEY);
+          if (savedUser) {
+            this.currentUser = JSON.parse(savedUser);
+          }
+        } catch (e) {}
+
+        this.loadData();
+      },
+
+      toggleTheme() {
+        this.isDarkMode = !this.isDarkMode;
+        if (this.isDarkMode) {
+          document.documentElement.classList.add('dark');
+          localStorage.setItem(THEME_KEY, 'dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+          localStorage.setItem(THEME_KEY, 'light');
+        }
+      },
+
+      async loadData() {
+        this.isLoading = true;
+        try {
+          const res = await runApi('getAllData', Boolean(this.currentUser && this.currentUser.role === 'admin'));
+          if (res && res.success !== false) {
+            // Map fetched data to store
+            localStorage.setItem(CACHE_KEY, JSON.stringify(res));
+          }
+        } catch (err) {
+          console.warn('Gagal memuat data dari API, beralih ke cache lokal:', err);
+        } finally {
+          this.isLoading = false;
+        }
+      }
+    };
+  }
+</script>

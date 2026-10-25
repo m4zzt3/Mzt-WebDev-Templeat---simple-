@@ -1,0 +1,192 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  [x-cloak] {
+    display: none !important;
+  }
+
+  html, body {
+    overflow-x: hidden;
+    overflow-x: clip;
+    max-width: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Tabular numbers for financial & numeric tables */
+  .font-mono-num {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Sleek modern scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.4);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.7);
+  }
+
+  /* Glassmorphism surfaces */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .dark .glass-card {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .dark .glass-nav {
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* Ambient glow utility classes */
+  .glow-brand {
+    box-shadow: 0 10px 25px -5px rgba(var(--brand-rgb, 59, 130, 246), 0.25), 0 8px 10px -6px rgba(var(--brand-rgb, 59, 130, 246), 0.2);
+  }
+  .glow-emerald {
+    box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.25), 0 8px 10px -6px rgba(5, 150, 105, 0.2);
+  }
+  .glow-rose {
+    box-shadow: 0 10px 25px -5px rgba(225, 29, 72, 0.25), 0 8px 10px -6px rgba(225, 29, 72, 0.2);
+  }
+  .glow-blue {
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.25), 0 8px 10px -6px rgba(37, 99, 235, 0.2);
+  }
+
+  /* Indeterminate Progress Bar for Async API/Save */
+  @keyframes indeterminate-slide {
+    0% { transform: translateX(-100%); width: 35%; }
+    50% { transform: translateX(50%); width: 65%; }
+    100% { transform: translateX(250%); width: 35%; }
+  }
+  .animate-indeterminate {
+    animation: indeterminate-slide 1.4s ease-in-out infinite;
+  }
+
+  /* Hide input number spinners */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  /* Native date/time picker color-scheme for dark mode */
+  input[type="date"],
+  input[type="time"] {
+    position: relative;
+    font-family: var(--font-mono);
+  }
+  .dark input[type="date"],
+  .dark input[type="time"] {
+    color-scheme: dark;
+  }
+
+  /* Date Picker: Single-click anywhere opens picker */
+  .date-picker-single-click {
+    position: relative;
+    cursor: pointer;
+  }
+  .date-picker-single-click::-webkit-calendar-picker-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  /* PWA safe area support for mobile gesture nav / home indicator */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+
+  /* SweetAlert2 Modern Card & Backdrop */
+  .swal2-container.swal2-backdrop-show,
+  .swal2-container.swal2-noanimation {
+    background: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  .swal2-popup:not(.swal2-toast) {
+    font-family: var(--font-sans) !important;
+    border-radius: 1.5rem !important;
+    padding: 1.5rem !important;
+    overflow: hidden !important;
+    max-width: 24rem !important;
+    width: 90% !important;
+  }
+
+  .swal2-popup:not(.swal2-toast) .swal2-icon {
+    display: none !important;
+  }
+
+  .swal2-popup:not(.swal2-toast) .swal2-html-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .swal2-popup:not(.swal2-toast) .swal2-actions {
+    margin: 1.25rem 0 0 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .swal2-actions:has(.swal2-cancel) {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  .swal2-actions:has(.swal2-cancel) .swal2-cancel {
+    order: 1 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .swal2-actions:has(.swal2-cancel) .swal2-confirm {
+    order: 2 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+</style>

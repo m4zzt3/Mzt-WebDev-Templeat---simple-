@@ -1,0 +1,71 @@
+# AGENTS.md — __APP_NAME__
+
+__APP_DESCRIPTION__
+
+## Architecture
+
+- Backend: `__BACKEND_FILE__` (Google Apps Script), database: Google Sheets (sheet names, see Data model).
+- Frontend: `__PAGES__` → `dist/__PAGES_DIST__`. All Alpine state lives in `JavaScript.html` (`appData()`); `Stylesheet.html` holds shared CSS. Both are inlined into each page by `build.js`.
+- Runtime: `google.script.run` inside Apps Script, else `runApi()` → `fetchFromAppsScript()` POSTing `{ action, args }` to each URL in `WEB_APP_URLS`. The Apps Script POST must use header `'Content-Type': 'text/plain;charset=utf-8'` (preflight workaround) — already set in `JavaScript.html`.
+- `doGet()` in `__BACKEND_FILE__` serves `__PAGES__` (any `?p=` not listed falls back to the first page). `doPost()` is the JSON API entrypoint with `LockService.getScriptLock()` concurrency guard; only actions in `ALLOWED_ACTIONS` are permitted.
+
+## Commands
+
+```bash
+npm install
+npm run build            # build.js → dist/
+npm run dev              # serve dist/ via `serve`
+npm run deploy:firebase  # build & deploy to Firebase Hosting via npx -y firebase-tools
+# atau jalankan deploy-firebase.bat di Windows
+```
+
+No test runner, linter, formatter, or typecheck. `npm run build` is the primary verification step.
+
+## Build & deploy
+
+- **Never edit `dist/` directly**. Change source files in root and rebuild.
+- `build.js` inlines `Stylesheet.html` + `JavaScript.html` into every `*.html` except those two, replaces `<?!= serverData ?>` with `{}`, copies PWA assets + `manifest.json` + `sw.js` + `assets/`, and lowercases output names (`Index.html` → `dist/index.html`, other spaces → `-`).
+- PWA icons are optional in source: if `logo-192.png`/`logo-512.png`/`favicon.png`/`logo.png` are absent, `build.js` downloads a fallback icon from the flaticon CDN (needs network). `logo.png` acts as fallback for all three sizes.
+- `build.sh` is a bash equivalent of `build.js` (not wired into `package.json`). If you change `build.js`'s filename mapping or include-regex, keep `build.sh` in sync.
+- `dist/`, `node_modules/`, and `.firebase/` are gitignored.
+- Hosting options:
+  - **Firebase Hosting**: `firebase.json` + `.firebaserc` + `deploy-firebase.bat` (or `npm run deploy:firebase`).
+  - **Vercel**: `vercel.json`: `{ cleanUrls: true, outputDirectory: "dist" }`.
+
+## Environment & API layer
+
+- `DEV_WEB_APP_URL` / `PROD_WEB_APP_URL` in `JavaScript.html` are **placeholders** (`..._WEB_APP_URL_HERE/exec`). `WEB_APP_URLS = [PROD_WEB_APP_URL]`.
+- To connect a real backend: deploy `__BACKEND_FILE__` as a web app (execute-as "Me", access "Anyone"), paste the `/exec` URL into `WEB_APP_URLS`, rebuild.
+- Without a URL, `runApi(...)` throws; on localhost the app shows a "Mode Pengembangan" warning and relies on seeded `setupDatabase()` data + `localStorage` cache.
+- `JavaScript.html` includes `setupModernSwal()`: an automatic formatter ensuring all SweetAlert2 popups (info, success, warning, question, error, and toasts) render with glowing ambient backdrops, rounded cards, and gradient buttons in harmony with light/dark modes.
+
+## Frontend–backend sync rules
+
+- Every function called via `runApi('name')` must be in `ALLOWED_ACTIONS` (inside `doPost()`) or the API rejects it with `Action not authorized`.
+- `getAllData(isAdmin)` returns the entity arrays (plus `admins` only when `isAdmin` is true). Backend data-shape changes require coordinated edits in `processFetchedData()` and the `appData()` getters that read columns by header name.
+- Sheet schema changes require coordinated updates: `setupDatabase()` headers, `getSheetData` row mapping, and frontend getters.
+- Backend save/update functions must accept field keys in the SAME case the frontend sends (the frontend uses the sheet's header names, e.g. `NamaProduk`), or accept both PascalCase and camelCase.
+
+## Caching & Concurrency
+
+- Backend concurrency: `doPost()` wraps data mutation inside `LockService.getScriptLock()` (`lock.tryLock(10000)`) and releases in `finally` to prevent race conditions during simultaneous Google Sheets writes.
+- Backend cache: `getAllData()` caches under `__CACHE_PREFIX___DATA_ADMIN` / `__CACHE_PREFIX___DATA_PUBLIC` (60s TTL) via `CacheService.getScriptCache()`.
+- **Call `clearDataCache()` after every write** so the public page reflects changes.
+- Frontend: `localStorage` keys `__CACHE_PREFIX___LANDING_DATA` (fast first paint) and session keys (`__CACHE_PREFIX___TOKEN` / role / username / name) + `theme` (dark mode).
+
+## Data model
+
+__SHEETS_SECTION__
+
+Relational links: __RELATION_LINKS__
+
+Business rules (enforced in `appData()` getters, JavaScript.html): __BUSINESS_RULES__
+
+## Conventions
+
+- API responses: `{ success: boolean, message: string, data?: any }`; the frontend throws on `success === false`.
+- Backend dates: `dd/MM/yyyy` or `dd/MM/yyyy HH:mm`.
+- IDs: `'PREFIX-' + new Date().getTime()`.
+- Booleans stored as text `'TRUE'`/`'FALSE'`; comparisons use `String(v).toUpperCase() === 'TRUE'`.
+- Default admin seeded by `setupDatabase()`: `admin`/`admin123` (or SHA-256 hashed); `doLogin` has a fallback when the admin sheet is empty.
+- `__BACKEND_FILE__` uses `const`/`let`; follow existing style in the file you edit.

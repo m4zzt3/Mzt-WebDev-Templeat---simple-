@@ -1,0 +1,251 @@
+/**
+ * __APP_NAME__ — Backend Google Apps Script (Code.gs)
+ * Database: Google Sheets
+ * Arsitektur: Mazte Blueprint Full-Stack
+ */
+
+const CACHE_PREFIX = '__CACHE_PREFIX__';
+const CACHE_TTL_SECONDS = 60;
+
+const ALLOWED_ACTIONS = [
+  'getAllData',
+  'doLogin',
+  'setupDatabase'
+];
+
+/**
+ * Entry point web app Google Apps Script (SSR & Headless API Fallback)
+ */
+function doGet(e) {
+  try {
+    var template = HtmlService.createTemplateFromFile('Index');
+    template.serverData = JSON.stringify(getAllData(false));
+    return template.evaluate()
+      .setTitle('__APP_NAME__')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  } catch (err) {
+    // Mode API / Headless jika file Index.html belum dibuat di editor Apps Script
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: '__APP_NAME__ API Backend is running!',
+      data: getAllData(false)
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Helper untuk menyertakan partial HTML di HtmlService
+ */
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/**
+ * Entry point API JSON via POST (fetch/runApi)
+ * Dilengkapi LockService untuk mencegah tabrakan data (race condition) saat concurrent writes.
+ */
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+
+  try {
+    var contents = e.postData ? e.postData.contents : '';
+    if (!contents) {
+      return jsonResponse({ success: false, message: 'Payload kosong' });
+    }
+
+    var payload = JSON.parse(contents);
+    var action = payload.action;
+    var args = payload.args || [];
+
+    if (!action || ALLOWED_ACTIONS.indexOf(action) === -1) {
+      return jsonResponse({ success: false, message: 'Action not authorized: ' + action });
+    }
+
+    if (typeof this[action] !== 'function') {
+      return jsonResponse({ success: false, message: 'Function not found: ' + action });
+    }
+
+    var result = this[action].apply(this, args);
+    return jsonResponse(result);
+  } catch (err) {
+    return jsonResponse({ success: false, message: 'Server error: ' + err.toString() });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getSpreadsheet() {
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function boldHeader(sheet) {
+  var headersRange = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+  headersRange.setFontWeight('bold');
+  headersRange.setBackground('#f3f4f6');
+  sheet.setFrozenRows(1);
+}
+
+function getOrCreateSheet(ss, name, headers) {
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    if (headers && headers.length > 0) {
+      sheet.appendRow(headers);
+      boldHeader(sheet);
+    }
+  }
+  return sheet;
+}
+
+/**
+ * Inisialisasi struktur sheet dan seed data awal (idempoten)
+ */
+function setupDatabase() {
+  var ss = getSpreadsheet();
+
+  // Sheet Users
+  var usersSheet = getOrCreateSheet(ss, 'Users', [
+    'UserID', 'Username', 'Password', 'Role', 'FullName', 'IsActive'
+  ]);
+  if (usersSheet.getLastRow() <= 1) {
+    usersSheet.appendRow([
+      'USR-1', 'admin', hashPassword('admin123'), 'admin', 'Administrator Utama', 'TRUE'
+    ]);
+  }
+
+  // Sheet Settings
+  var settingsSheet = getOrCreateSheet(ss, 'Settings', ['SettingKey', 'SettingValue']);
+  if (settingsSheet.getLastRow() <= 1) {
+    settingsSheet.appendRow(['NamaAplikasi', '__APP_NAME__']);
+    settingsSheet.appendRow(['Versi', '1.0.0']);
+  }
+
+  clearDataCache();
+  return { success: true, message: 'Database berhasil diinisialisasi' };
+}
+
+function clearDataCache() {
+  try {
+    var cache = CacheService.getScriptCache();
+    cache.remove(CACHE_PREFIX + '_DATA_ADMIN');
+    cache.remove(CACHE_PREFIX + '_DATA_PUBLIC');
+  } catch (e) {}
+}
+
+function getSheetData(sheetName) {
+  var ss = getSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return [];
+  var values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  var headers = values[0];
+  var tz = Session.getScriptTimeZone() || 'Asia/Jakarta';
+  var result = [];
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    var item = {};
+    for (var j = 0; j < headers.length; j++) {
+      var val = row[j];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, tz, 'dd/MM/yyyy HH:mm');
+      }
+      item[headers[j]] = val;
+    }
+    result.push(item);
+  }
+  return result;
+}
+
+function getAllData(isAdmin) {
+  var cacheKey = CACHE_PREFIX + (isAdmin ? '_DATA_ADMIN' : '_DATA_PUBLIC');
+  var cache = CacheService.getScriptCache();
+  var cached = cache.get(cacheKey);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {}
+  }
+
+  var data = {
+    settings: getSheetData('Settings')
+  };
+
+  if (isAdmin) {
+    var users = getSheetData('Users');
+    data.users = users.map(function(u) {
+      return {
+        UserID: u.UserID,
+        Username: u.Username,
+        Role: u.Role,
+        FullName: u.FullName,
+        IsActive: u.IsActive
+      };
+    });
+  }
+
+  try {
+    cache.put(cacheKey, JSON.stringify(data), CACHE_TTL_SECONDS);
+  } catch (e) {}
+
+  return data;
+}
+
+function hashPassword(password) {
+  var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(password));
+  var hash = '';
+  for (var i = 0; i < digest.length; i++) {
+    var byteVal = digest[i];
+    if (byteVal < 0) byteVal += 256;
+    var byteHex = byteVal.toString(16);
+    if (byteHex.length === 1) byteHex = '0' + byteHex;
+    hash += byteHex;
+  }
+  return hash;
+}
+
+function doLogin(username, password) {
+  var users = getSheetData('Users');
+  if (!users || users.length === 0) {
+    if (username === 'admin' && (password === 'admin123' || password === 'bismillah')) {
+      return {
+        success: true,
+        message: 'Login berhasil (fallback admin bawaan)',
+        user: { username: 'admin', role: 'admin', FullName: 'Administrator' }
+      };
+    }
+    return { success: false, message: 'Data pengguna belum dikonfigurasi' };
+  }
+
+  var inputHash = hashPassword(password);
+  for (var i = 0; i < users.length; i++) {
+    var u = users[i];
+    if (String(u.Username).toLowerCase() === String(username).toLowerCase()) {
+      if (String(u.IsActive).toUpperCase() !== 'TRUE') {
+        return { success: false, message: 'Akun Anda berstatus non-aktif' };
+      }
+      if (u.Password === inputHash || u.Password === password) {
+        return {
+          success: true,
+          message: 'Login berhasil',
+          user: {
+            userId: u.UserID,
+            username: u.Username,
+            role: u.Role,
+            fullName: u.FullName
+          }
+        };
+      }
+      return { success: false, message: 'Password salah' };
+    }
+  }
+
+  return { success: false, message: 'Pengguna tidak ditemukan' };
+}

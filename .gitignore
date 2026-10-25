@@ -1,0 +1,10 @@
+node_modules/
+__pycache__/
+*.pyc
+dist/
+.DS_Store
+.firebase/
+.env
+.env.*
+*.log
+scratch/

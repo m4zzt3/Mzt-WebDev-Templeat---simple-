@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": [
+      "skills"
+    ]
+  },
+  "command": {
+    "design": {
+      "description": "Analisa screenshot UI → generate design.md (skill design-analyst).",
+      "template": "Jalankan skill **design-analyst** di `skills/design-analyst/` untuk permintaan: $ARGUMENTS. Lampirkan 1-3 screenshot UI. Lakukan audit visual 12 dimensi, sajikan design audit ringkas, lalu langsung tulis design.md lengkap ke root project (zero-question by default). Arahkan ke gas-builder (default) atau supabase-builder (opsional) setelahnya."
+    },
+    "build": {
+      "description": "Build app Google Apps Script dari design.md (skill gas-builder) + deploy Firebase Hosting.",
+      "template": "Jalankan skill **gas-builder** di `skills/gas-builder/` untuk: $ARGUMENTS. Pastikan design.md ada (kalau belum, jalankan design-analyst dulu). Lock token design.md VERBATIM, rancang screen + tabel Google Sheets, generate Code.gs + Index.html/JavaScript.html/Stylesheet.html (Tailwind v3 stable, NOL mock data), copy build pipeline dari skills/scaffold-project/templates/, verifikasi `npm install && npm run build`, lalu pandu setup Apps Script + deploy Firebase Hosting. Jika $ARGUMENTS menyebut Supabase, pakai skill supabase-builder."
+    },
+    "supabase": {
+      "description": "OPSIONAL. Generate app Supabase dari design.md (skill supabase-builder).",
+      "template": "Jalankan skill **supabase-builder** di `skills/supabase-builder/` (OPSIONAL) untuk: $ARGUMENTS. Pastikan design.md ada. Lock token VERBATIM, rancang routes + tabel, minta Project URL + anon key (tolak service_role), generate SQL migration FULL + RLS, lalu index.html (hash router) + script.js (CDN Supabase, Tailwind v3 stable, NOL mock data)."
+    },
+    "prd": {
+      "description": "Generate prd.md dari ide atau permintaan aplikasi.",
+      "template": "Generate file prd.md menggunakan skill **generate-prd** di `skills/generate-prd/` untuk kebutuhan: $ARGUMENTS"
+    },
+    "init": {
+      "description": "Scaffold project lengkap dari prd.md (atau otomatis generate prd.md jika belum ada).",
+      "template": "Scaffold project ini dari prd.md menggunakan skill dalam `skills/`. Jika prd.md belum ada atau $ARGUMENTS berisi ide aplikasi, gunakan skill **generate-prd** terlebih dahulu untuk membuat prd.md. Kemudian jalankan skill **scaffold-project** untuk membuat Code.gs, Index.html, dan AGENTS.md, lalu buat icon dengan **generate-assets**, dan verifikasi dengan `npm install && npm run build`."
+    },
+    "slop": {
+      "description": "Filter Anti Slop — bersihkan UI, copy, aksesibilitas, layout mobile, dan komentar kode dari ciri output AI.",
+      "template": "Terapkan **Anti Slop** untuk: $ARGUMENTS. Baca core `skills/antislop/SKILL.md` (selalu) + skill terkait (antislop-ui / antislop-copywriting / antislop-human / antislop-layoutmobile / antislop-code). Resolve mode (during/after) sesuai bagian Two Usage Modes, resolve arah desain dulu (R-37: pakai design.md/prd.md bila ada), terapkan aturan, lalu jalankan Delivery Gate PASS/FAIL sebelum menyerahkan hasil."
+    }
+  }
+}

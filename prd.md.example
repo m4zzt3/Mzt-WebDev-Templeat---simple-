@@ -1,0 +1,35 @@
+# Deskripsi Aplikasi
+GANTI_INI_Nama_Aplikasi adalah aplikasi yang ... (deskripsi singkat). Contoh: "adalah landing page katalog produk yang menampilkan produk secara menarik. Pengunjung melihat detail lalu diarahkan ke marketplace; Admin mengatur produk & konten."
+
+# Role Akses
+- Admin: (contoh) login ke halaman admin, mengelola produk/konten, dsb.
+- Pengunjung: (contoh) melihat landing page, mencari/memfilter produk, membuka link produk.
+
+# Menu & Fitur Utama
+## Bagian Publik
+- (tulis setiap section halaman publik + fungsinya)
+## Bagian Admin
+- (tulis setiap menu admin + fungsinya: CRUD, pengaturan, dsb.)
+
+# Struktur Data (Google Sheets)
+Tuliskan setiap sheet dengan kolomnya. Contoh format:
+
+**Sheet: Products**
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| ProductID | String | ID unik |
+| NamaProduk | String | Nama produk |
+| ... | ... | ... |
+
+**Sheet: Categories**
+...
+
+# Catatan Khusus & Business Logic
+- (tulis aturan bisnis yang harus dipatuhi frontend, contoh:)
+- Hanya data dengan `IsActive = TRUE` yang tampil publik.
+- Relasi: `Products.CategoryID` → `Categories.CategoryID`.
+- Harga bersifat informatif; transaksi di luar aplikasi.
+- Jika gambar tidak tersedia, gunakan placeholder.
+
+---
+Hapus contoh di atas dan isi sesuai aplikasi Anda, lalu simpan sebagai `prd.md`. Skill `scaffold-project` membaca file ini saat `/init`.

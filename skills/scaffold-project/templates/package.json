@@ -1,0 +1,14 @@
+{
+  "name": "APP_SLUG",
+  "version": "1.0.0",
+  "description": "APP_DESCRIPTION",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "serve dist",
+    "deploy:firebase": "npm run build && npx -y firebase-tools deploy --only hosting"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
+}
